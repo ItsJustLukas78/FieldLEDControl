@@ -45,8 +45,6 @@ def send_state_to_server(state, timer_value=None):
 
 # Example: Send different states to the server based on match progress
 def handle_match_state(state, timer_value=None):
-    print(f"Match time: {timer_value}")
-
     if state == MatchState.SCHEDULED_START:
         send_state_to_server(MatchState.SCHEDULED_START)
     elif state == MatchState.MATCH_STARTING:

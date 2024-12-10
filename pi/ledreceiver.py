@@ -23,76 +23,8 @@ effect_thread = None
 def neutralEffect(strip):
     """Neutral effect - all LEDs off but still lit with a faint color."""
     for i in range(strip.numPixels()):
-        strip.setPixelColor(i, Color(10, 10, 10))  # Very faint light (no complete off)
+        strip.setPixelColor(i, Color(150, 150, 150))
     strip.show()
-
-def countdownEffect(strip):
-    """Countdown effect - LED lights one by one, like a countdown."""
-    for i in range(strip.numPixels()):
-        if effect_event.is_set(): return  # Stop the effect if a new one is triggered
-        strip.setPixelColor(i, Color(255, 0, 0))  # Red
-        strip.show()
-        time.sleep(0.1)
-    neutralEffect(strip)
-
-def autonomousEffect(strip):
-    """Autonomous mode effect - color wave, with LEDs changing in a spread-out wave."""
-    for i in range(strip.numPixels()):
-        if effect_event.is_set(): return  # Stop the effect if a new one is triggered
-        strip.setPixelColor(i, Color(0, 255, 0))  # Green
-        strip.show()
-        time.sleep(0.01)
-    neutralEffect(strip)
-
-def driverControlEffect(strip):
-    """Driver control mode effect - chasing pattern that spans the whole field."""
-    for i in range(strip.numPixels()):
-        if effect_event.is_set(): return  # Stop the effect if a new one is triggered
-        strip.setPixelColor(i, Color(0, 0, 255))  # Blue
-        strip.show()
-        time.sleep(0.05)
-        strip.setPixelColor(i, Color(0, 0, 0))  # Turn off LED (but not completely)
-    neutralEffect(strip)
-
-def autoEndEffect(strip):
-    """Autonomous end effect - blinking effect in a spread-out pattern."""
-    for i in range(5):
-        if effect_event.is_set(): return  # Stop the effect if a new one is triggered
-        for j in range(strip.numPixels()):
-            strip.setPixelColor(j, Color(255, 255, 0))  # Yellow
-        strip.show()
-        time.sleep(0.5)
-        neutralEffect(strip)
-        time.sleep(0.5)
-
-def driverEndEffect(strip):
-    """Driver end effect - all LEDs blink together in a wide-spread pattern."""
-    for i in range(5):
-        if effect_event.is_set(): return  # Stop the effect if a new one is triggered
-        for j in range(strip.numPixels()):
-            strip.setPixelColor(j, Color(255, 255, 255))  # White
-        strip.show()
-        time.sleep(0.5)
-        neutralEffect(strip)
-        time.sleep(0.5)
-
-# def idleEffect(strip):
-#     """Idle effect - slow breathing pattern with blue color."""
-#     for i in range(0, 256, 5):
-#         if effect_event.is_set(): return  # Stop the effect if a new one is triggered
-#         strip.setBrightness(i)
-#         for j in range(strip.numPixels()):
-#             strip.setPixelColor(j, Color(0, 0, 255))  # Blue
-#         strip.show()
-#         time.sleep(0.1)
-#     for i in range(255, -1, -5):
-#         if effect_event.is_set(): return  # Stop the effect if a new one is triggered
-#         strip.setBrightness(i)
-#         for j in range(strip.numPixels()):
-#             strip.setPixelColor(j, Color(0, 0, 255))  # Blue
-#         strip.show()
-#         time.sleep(0.1)
-
 
 def countdown(duration_s=10, blue_color=Color(0, 0, 255), red_color=Color(255, 0, 0), flash=True):
     global strip
