@@ -4,8 +4,8 @@ from rpi_ws281x import PixelStrip, Color
 import threading
 
 # LED strip configuration:
-LED_COUNT = 300        # Number of LED pixels.
-LED_PIN = 18           # GPIO pin connected to the pixels (18 uses PWM!).
+LED_COUNT = 1200        # Number of LED pixels.
+LED_PIN = 18          # GPIO pin connected to the pixels (18 uses PWM!).
 LED_FREQ_HZ = 800000   # LED signal frequency in hertz (usually 800khz)
 LED_DMA = 10           # DMA channel to use for generating signal (try 10)
 LED_BRIGHTNESS = 50    # Set to 0 for darkest and 255 for brightest
@@ -26,19 +26,33 @@ def neutralEffect(strip):
         strip.setPixelColor(i, Color(150, 150, 150))
     strip.show()
 
-def countdown(duration_s=10, blue_color=Color(0, 0, 255), red_color=Color(255, 0, 0), flash=True):
+#function that smoothly transitions to one color to another in 1 second, with the start color being whatever the current color is
+def transitionToColor(strip, start_color, end_color):
+    i = 0
+    while i < 256:
+        r = int((i / 255) * (end_color >> 16) + (1 - (i / 255)) * (start_color >> 16))
+        g = int((i / 255) * ((end_color >> 8) & 255) + (1 - (i / 255)) * ((start_color >> 8) & 255))
+        b = int((i / 255) * (end_color & 255) + (1 - (i / 255)) * (start_color & 255))
+        for j in range(strip.numPixels()):
+            strip.setPixelColor(j, Color(r, g, b))
+        strip.show()
+        time.sleep(0.004)
+        i += 4
+    return "good"
+
+def countdown(duration_s=10, blue_color=Color(0, 0, 255), red_color=Color(255, 0, 0), flash=True, delay=0.50):
     global strip
 
     # Calculate the size of each equal section
     section_size = 50
     num_sections = strip.numPixels() // section_size
 
-    # Set the color of the entire strip to  blue
-    for i in range(strip.numPixels()):
-        strip.setPixelColor(i, blue_color)
-
-    if effect_event.is_set(): return  # Stop the effect if a new one is triggered
-    strip.show()
+    # # Set the color of the entire strip to  blue
+    # for i in range(strip.numPixels()):
+    #     strip.setPixelColor(i, blue_color)
+    #
+    # if effect_event.is_set(): return  # Stop the effect if a new one is triggered
+    # strip.show()
 
     # each section to be completely blue at the start, and as time progresses, the MIDDLE OF EACH SECTION turns red and grows outward towards the edge of its own section
 
@@ -54,6 +68,24 @@ def countdown(duration_s=10, blue_color=Color(0, 0, 255), red_color=Color(255, 0
     # Change the color of the sections to red from the middle outward each second
     for i in range(1, duration_s + 1):
         if effect_event.is_set(): return  # Stop the effect if a new one is triggered
+
+        # if duration isnt 15 and the current i is 15, make a more dramatic change at 15 seconds, then continue doing the normal change. Flash dark yellow to off 4 times in 1 second
+        if duration_s != 15 and i == duration_s - 15:
+            for j in range(4):
+                wait_time = (1/2) * ((1/3) * (1 - (delay / duration_s)))
+                if effect_event.is_set(): return
+                for led in range(strip.numPixels()):
+                    strip.setPixelColor(led, Color(255, 255, 0))
+                strip.show()
+                time.sleep(wait_time)
+                if effect_event.is_set(): return
+                neutralEffect(strip)
+                time.sleep(wait_time)
+                if effect_event.is_set(): return
+
+
+            continue
+
         # generate new led_colors
         for section in range(num_sections):
             center_pixel = section * section_size + section_size // 2
@@ -86,18 +118,24 @@ def countdown(duration_s=10, blue_color=Color(0, 0, 255), red_color=Color(255, 0
 
         if i == duration_s:
             # flash the lights red on and off
+            for led in range(strip.numPixels()):
+                strip.setPixelColor(led, red_color)
+            strip.show()
+
             if flash:
                 for j in range(4):
                     if effect_event.is_set(): return  # Stop the effect if a new one is triggered
+                    time.sleep(0.2)
+                    if effect_event.is_set(): return
+                    neutralEffect(strip)
+                    time.sleep(0.2)
+                    if effect_event.is_set(): return
                     for led in range(strip.numPixels()):
                         strip.setPixelColor(led, red_color)
                     strip.show()
-                    time.sleep(0.2)
-                    neutralEffect(strip)
-                    time.sleep(0.2)
         else:
             strip.show()
-            time.sleep(1)
+            time.sleep(1 - (delay / duration_s))
     return "good"
 
 # Function to trigger effect in a background thread
@@ -109,10 +147,10 @@ def trigger_effect_in_background(state, time_left):
     elif state == "MATCH_STARTING":
         countdown(3, Color(50, 50, 50), Color(255, 255, 0), False)
     elif state == "AUTONOMOUS":
-        print(int(time_left))
+        transitionToColor(strip, Color(255, 255, 0), Color(0, 255, 0))
         countdown(int(time_left) if time_left else 15, Color(0, 255, 0), Color(255, 0, 0))
     elif state == "DRIVER_CONTROL":
-        print(int(time_left))
+        transitionToColor(strip, Color(255, 255, 0), Color(0, 0, 255))
         countdown(int(time_left) if time_left else 105)
     elif state == "AUTO_END":
         pass
@@ -148,11 +186,27 @@ def handle_state_change(state, time_left=None):
 @app.route('/brightness/<int:brightness>', methods=['GET'])
 def setBrightness(brightness=50):
     """Adjust brightness of LEDs."""
-    if brightness < 0 or brightness > 100:
+    if brightness < 0 or brightness > 255:
         return "bad"
     strip.setBrightness(brightness)
     strip.show()
     return "good"
+
+@app.route('/color/<color>', methods=['GET'])
+def setColor(color=0):
+    """Set the color of the LEDs."""
+    if color == "red":
+        color = Color(255, 0, 0)
+    elif color == "green":
+        color = Color(0, 255, 0)
+    elif color == "blue":
+        color = Color(0, 0, 255)
+    elif color == "white":
+        color = Color(255, 255, 255)
+
+    transitionToColor(strip, Color(50, 50, 50), color)
+    return "good"
+
 
 # Main program logic follows:
 if __name__ == '__main__':

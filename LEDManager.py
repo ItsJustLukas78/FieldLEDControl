@@ -8,7 +8,7 @@ import re
 # Configure Tesseract
 pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/bin/tesseract'
 
-FLASK_SERVER_URL = "http://192.168.2.2:5000/state/"
+FLASK_SERVER_URL = "http://10.0.0.235:5000/state/"
 
 # Define Match States
 class MatchState:
@@ -153,12 +153,16 @@ def main():
     # Capture Video from Virtual Webcam
     cap = cv2.VideoCapture(2)  # Replace '0' with OBS virtual webcam index if needed
 
-    if not cap.isOpened():
-        print("Error: Unable to access webcam.")
-        return
+    # if not cap.isOpened():
+    #     print("Error: Unable to access webcam.")
+    #     return
 
     print("Starting Match State Detection...")
     try:
+        while True:
+            handle_match_state(MatchState.DRIVER_CONTROL, 10)
+            time.sleep(12)
+
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
